@@ -37,6 +37,10 @@ def recognize_speech():
     except sr.RequestError:
         return "Error with speech recognition service"
 
+@app.route("/")
+def home():
+    return "French Pronunciation API is running!"
+
 @app.route("/speak", methods=["POST"])
 def generate_speech():
     data = request.json
