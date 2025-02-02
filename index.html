@@ -19,6 +19,7 @@
     </div>
 
     <script>
+        
         let mediaRecorder;
         let audioChunks = [];
 
@@ -71,6 +72,77 @@
             const utterance = new SpeechSynthesisUtterance(phrase);
             utterance.lang = "fr-FR"; // Set language to French
             speechSynthesis.speak(utterance);
+        }
+
+        async function convertToWav(audioBlob) {
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            const offlineContext = new OfflineAudioContext(1, audioBuffer.length, 44100);
+            const source = offlineContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(offlineContext.destination);
+            source.start(0);
+
+            const renderedBuffer = await offlineContext.startRendering();
+            return bufferToWav(renderedBuffer);
+        }
+
+        function bufferToWav(buffer) {
+            const numOfChan = buffer.numberOfChannels,
+                length = buffer.length * numOfChan * 2 + 44,
+                bufferArr = new ArrayBuffer(length),
+                view = new DataView(bufferArr),
+                channels = [],
+                sampleRate = buffer.sampleRate;
+
+            let offset = 0;
+            function writeString(str) {
+                for (let i = 0; i < str.length; i++) {
+                    view.setUint8(offset + i, str.charCodeAt(i));
+                }
+                offset += str.length;
+            }
+
+            function writeInt16(value) {
+                view.setInt16(offset, value, true);
+                offset += 2;
+            }
+
+            writeString("RIFF");
+            view.setUint32(offset, 36 + buffer.length * 2, true);
+            offset += 4;
+            writeString("WAVE");
+            writeString("fmt ");
+            view.setUint32(offset, 16, true);
+            offset += 4;
+            view.setUint16(offset, 1, true);
+            offset += 2;
+            view.setUint16(offset, numOfChan, true);
+            offset += 2;
+            view.setUint32(offset, sampleRate, true);
+            offset += 4;
+            view.setUint32(offset, sampleRate * 2 * numOfChan, true);
+            offset += 4;
+            view.setUint16(offset, numOfChan * 2, true);
+            offset += 2;
+            view.setUint16(offset, 16, true);
+            offset += 2;
+            writeString("data");
+            view.setUint32(offset, buffer.length * 2, true);
+            offset += 4;
+
+            for (let i = 0; i < buffer.numberOfChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            for (let i = 0; i < buffer.length; i++) {
+                for (let j = 0; j < numOfChan; j++) {
+                    writeInt16(channels[j][i] * 0x7FFF);
+                }
+            }
+
+            return new Blob([bufferArr], { type: "audio/wav" });
         }
     </script>
 </body>
