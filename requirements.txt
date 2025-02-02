@@ -1,5 +1,4 @@
 Flask
 Flask-CORS
 SpeechRecognition
-pyttsx3
 gTTS

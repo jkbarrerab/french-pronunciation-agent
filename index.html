@@ -4,50 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>French Pronunciation Trainer</title>
-    <script>
-        async function playSpeech() {
-            const phrase = document.getElementById("phrase").value;
-            if (!phrase) {
-                alert("Please enter a phrase!");
-                return;
-            }
-
-            fetch("https://french-pronunciation-agent.onrender.com/speak", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ phrase })
-            });
-        }
-
-        async function checkPronunciation() {
-            const phrase = document.getElementById("phrase").value;
-            if (!phrase) {
-                alert("Please enter a phrase!");
-                return;
-            }
-
-            const response = await fetch("https://french-pronunciation-agent.onrender.com/check_pronunciation", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ reference_text: phrase })
-            });
-
-            const data = await response.json();
-            if (data.error) {
-                alert(data.error);
-            } else {
-                document.getElementById("result").innerText = `Expected: ${data.expected}
-                \nRecognized: ${data.recognized}
-                \nSimilarity: ${data.similarity}%`;
-            }
-        }
-    </script>
 </head>
 <body>
     <h1>French Pronunciation Trainer</h1>
     <input type="text" id="phrase" placeholder="Enter a French phrase">
-    <button onclick="playSpeech()">Listen</button>
-    <button onclick="checkPronunciation()">Check Pronunciation</button>
+    <button onclick="recordAudio()">Record & Check Pronunciation</button>
     <p id="result"></p>
+
+    <script>
+        function recordAudio() {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                const mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                }, 3000);
+
+                mediaRecorder.ondataavailable = async event => {
+                    const audioBlob = new Blob([event.data], { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append("audio", audioBlob, "recording.wav");
+                    formData.append("reference_text", document.getElementById("phrase").value);
+
+                    const response = await fetch("https://french-pronunciation-agent.onrender.com/check_pronunciation", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    document.getElementById("result").innerText = `Expected: ${data.expected}\nRecognized: ${data.recognized}\nSimilarity: ${data.similarity}%`;
+                };
+            }).catch(error => console.error("Microphone access error:", error));
+        }
+    </script>
 </body>
 </html>

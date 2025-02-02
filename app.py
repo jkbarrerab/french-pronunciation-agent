@@ -1,42 +1,24 @@
 from flask import Flask, request, jsonify
 import speech_recognition as sr
-# import pyttsx3
 from gtts import gTTS
 import os
-
 from difflib import SequenceMatcher
 from flask_cors import CORS
 
-
 app = Flask(__name__)
-CORS(app)  # Allow frontend requests
+CORS(app)
 
-# Initialize text-to-speech engine
+# Function to convert text to speech
 def speak(text):
     tts = gTTS(text=text, lang="fr")
     tts.save("output.mp3")
-    os.system("mpg321 output.mp3")  # Use ffplay or any available media player
+    return "output.mp3"
 
-# def speak(text):
-#     engine = pyttsx3.init()
-#     engine.setProperty('rate', 125)  # Set slower speech rate
-
-#     # Select a French voice
-#     voices = engine.getProperty('voices')
-#     for voice in voices:
-#         if "fr" in voice.id or "French" in voice.name:
-#             engine.setProperty('voice', voice.id)
-#             break
-
-#     engine.say(text)
-#     engine.runAndWait()
-
-# Speech recognition function
-def recognize_speech():
+# Speech recognition from uploaded file
+def recognize_speech(audio_file):
     recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
+    with sr.AudioFile(audio_file) as source:
+        audio = recognizer.record(source)
 
     try:
         text = recognizer.recognize_google(audio, language="fr-FR")
@@ -46,37 +28,30 @@ def recognize_speech():
     except sr.RequestError:
         return "Error with speech recognition service"
 
-@app.route("/")
-def home():
-    return "French Pronunciation API is running!"
-
-@app.route("/speak", methods=["POST"])
-def generate_speech():
-    data = request.json
-    phrase = data.get("phrase", "")
-
-    if not phrase:
-        return jsonify({"error": "No phrase provided"}), 400
-
-    speak(phrase)
-    return jsonify({"message": "Speech played successfully"}), 200
-
+# Route to check pronunciation
 @app.route("/check_pronunciation", methods=["POST"])
 def check_pronunciation():
-    data = request.json
-    reference_text = data.get("reference_text", "")
+    if "audio" not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    audio_file = request.files["audio"]
+    audio_path = "temp.wav"
+    audio_file.save(audio_path)
+
+    recognized_text = recognize_speech(audio_path)
+    reference_text = request.form.get("reference_text", "")
 
     if not reference_text:
         return jsonify({"error": "No reference text provided"}), 400
 
-    spoken_text = recognize_speech()
-    similarity = SequenceMatcher(None, reference_text.lower(), spoken_text.lower()).ratio()
+    similarity = SequenceMatcher(None, reference_text.lower(), recognized_text.lower()).ratio()
 
     return jsonify({
         "expected": reference_text,
-        "recognized": spoken_text,
+        "recognized": recognized_text,
         "similarity": round(similarity * 100, 2)
     }), 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
