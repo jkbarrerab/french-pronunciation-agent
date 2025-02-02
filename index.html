@@ -10,6 +10,7 @@
     <input type="text" id="phrase" placeholder="Enter a French phrase">
     <button onclick="startRecording()">Start Recording</button>
     <button onclick="stopRecording()">Stop & Upload</button>
+    <button onclick="playPhrase()">Play Phrase</button>
     <p id="result"></p>
 
     <script>
@@ -18,7 +19,7 @@
 
         function startRecording() {
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); // Use WebM format
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
                 mediaRecorder.start();
                 console.log("Recording started...");
                 audioChunks = [];
@@ -30,8 +31,6 @@
                 mediaRecorder.onstop = async () => {
                     console.log("Recording stopped...");
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-
-                    // Convert WebM to WAV before sending
                     const wavBlob = await convertToWav(audioBlob);
                     console.log("Converted WAV Blob:", wavBlob);
 
@@ -58,6 +57,17 @@
             }
         }
 
+        function playPhrase() {
+            const phrase = document.getElementById("phrase").value;
+            if (!phrase) {
+                alert("Please enter a phrase!");
+                return;
+            }
+            const utterance = new SpeechSynthesisUtterance(phrase);
+            utterance.lang = "fr-FR"; // Set language to French
+            speechSynthesis.speak(utterance);
+        }
+
         async function convertToWav(audioBlob) {
             const arrayBuffer = await audioBlob.arrayBuffer();
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -72,7 +82,6 @@
             return bufferToWav(renderedBuffer);
         }
 
-        // Convert AudioBuffer to WAV
         function bufferToWav(buffer) {
             const numOfChan = buffer.numberOfChannels,
                 length = buffer.length * numOfChan * 2 + 44,
