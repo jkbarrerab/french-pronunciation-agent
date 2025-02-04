@@ -72,7 +72,7 @@
             }
             const utterance = new SpeechSynthesisUtterance(phrase);
             utterance.lang = "fr-FR"; // Set language to French
-            speechSynthesis.speak(utterance);
+            window.speechSynthesis.speak(utterance);
         }
 
         async function convertToWav(audioBlob) {
