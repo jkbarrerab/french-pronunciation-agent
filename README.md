@@ -1,4 +1,4 @@
-# ** French Pronunciation Trainer**
+# French Pronunciation Trainer
 🎤 **A web application to help users improve their French pronunciation by recording and comparing speech with reference text.**
 
 [French Pronunciation Trainer](https://extraordinary-sopapillas-ea8bbe.netlify.app/)
