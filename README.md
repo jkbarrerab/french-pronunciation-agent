@@ -15,7 +15,7 @@ A simple web application to help users practice French pronunciation: record you
 **Live demo:** https://extraordinary-sopapillas-ea8bbe.netlify.app/  <!-- Update if needed -->
 
 <p align="center">
-  <img src="Screenshots.png" alt="App demo screenshot" width="250" />
+  <img src="Screenshot.png" alt="App demo screenshot" width="550" />
 </p>---
 
 ## Table of Contents
